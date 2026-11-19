@@ -1,0 +1,9 @@
+# Compiled Java classes and build output
+ECGAnomalyDetector/out/
+*.class
+
+# macOS and IDE metadata
+.DS_Store
+*.iml
+.idea/
+.vscode/

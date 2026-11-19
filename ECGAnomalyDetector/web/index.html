@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ventria | ECG Anomaly Detection</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 40 40" width="40" height="40" aria-hidden="true">
+        <rect width="40" height="40" rx="10" fill="#F5EFE6" />
+        <path d="M5 22 H12 L15 17 L20 31 L25 9 L28 22 H35" fill="none" stroke="#6E1E31"
+              stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <div>
+        <div class="brand-name">Ventria</div>
+        <div class="brand-tag">ECG Anomaly Detection</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span id="livePill" class="live-pill">
+        <span class="live-dot"></span>
+        <span id="liveLabel">Monitor live</span>
+      </span>
+      <div class="clock-block">
+        <div id="clockTime" class="clock-time">--:--:--</div>
+        <div id="clockDate" class="clock-date">---</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar">
+      <section class="card card-load">
+        <h2 class="card-title">Load ECG data</h2>
+        <div id="dropZone" class="drop-zone" tabindex="0" role="button"
+             aria-label="Drop a folder or CSV files here, or press Enter to choose a folder">
+          <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
+            <path d="M3 7.5A1.5 1.5 0 0 1 4.5 6h4.6l2 2h8.4A1.5 1.5 0 0 1 21 9.5v8A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z"
+                  fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" />
+            <path d="M12 16.5v-5m0 0-2.2 2.2M12 11.5l2.2 2.2" fill="none" stroke="currentColor"
+                  stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          <strong>Drop a folder or CSV files</strong>
+          <span>Every recording is analysed and classified</span>
+        </div>
+        <div class="btn-pair">
+          <button id="chooseFolderBtn" class="btn btn-primary" type="button">Choose folder</button>
+          <button id="chooseFilesBtn" class="btn btn-outline" type="button">Choose files</button>
+        </div>
+        <input id="folderInput" type="file" webkitdirectory directory multiple hidden />
+        <input id="filesInput" type="file" accept=".csv,.txt" multiple hidden />
+        <div class="field-inline">
+          <label class="field-label" for="samplingRate">Rate if file has no time column</label>
+          <div class="input-suffix">
+            <input id="samplingRate" class="input input-sm" type="number" min="50" max="2000" value="250" />
+            <span>Hz</span>
+          </div>
+        </div>
+        <div id="errorBox" class="error-box" role="alert" hidden></div>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">Reference recordings</h2>
+        <label class="field-label" for="scenarioSelect">Built-in demo</label>
+        <select id="scenarioSelect" class="input"></select>
+        <button id="downloadSampleBtn" class="link-btn" type="button">Download as CSV</button>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">Patient</h2>
+        <label class="field-label" for="patientId">Patient ID</label>
+        <input id="patientId" class="input" type="text" />
+
+        <label class="field-label" for="patientName">Full name</label>
+        <input id="patientName" class="input" type="text" />
+
+        <div class="field-row">
+          <div>
+            <label class="field-label" for="patientAge">Age</label>
+            <input id="patientAge" class="input" type="number" min="0" max="130" />
+          </div>
+          <div>
+            <label class="field-label" for="patientSex">Sex</label>
+            <select id="patientSex" class="input">
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+              <option value="Unknown">Unknown</option>
+            </select>
+          </div>
+        </div>
+        <button id="runBtn" class="btn btn-primary" type="button">Re-run analysis</button>
+        <div class="btn-pair">
+          <button id="pauseBtn" class="btn btn-outline" type="button">Pause monitor</button>
+          <button id="exportBtn" class="btn btn-outline" type="button">Export report</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">Detection rules</h2>
+        <div id="rulesList" class="rules-list"></div>
+      </section>
+    </aside>
+
+    <!-- MAIN AREA -->
+    <section class="content">
+      <section id="batchPanel" class="batch-panel" hidden>
+        <div class="batch-head">
+          <div>
+            <div class="eyebrow">Batch analysis</div>
+            <h2 id="batchTitle" class="batch-title">—</h2>
+          </div>
+          <div id="batchProgress" class="batch-progress"></div>
+        </div>
+        <div id="batchSummary" class="batch-summary"></div>
+        <div class="table-wrap">
+          <table class="batch-table">
+            <thead>
+              <tr>
+                <th>File</th>
+                <th>Patient</th>
+                <th class="num">HR</th>
+                <th class="num">ST dev.</th>
+                <th>Detected condition</th>
+                <th>Severity</th>
+              </tr>
+            </thead>
+            <tbody id="batchBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="resultHero" class="result-hero sev-normal">
+        <div class="hero-main">
+          <div class="eyebrow">Detected condition</div>
+          <div id="heroCondition" class="hero-condition">Analysing…</div>
+          <div id="heroDiagnosis" class="hero-diagnosis"></div>
+        </div>
+        <div class="hero-side">
+          <span id="heroBadge" class="sev-badge">—</span>
+          <div id="heroPatient" class="hero-meta"></div>
+          <div id="heroSource" class="hero-meta hero-source"></div>
+        </div>
+      </section>
+
+      <div class="monitor-row">
+        <div class="strip-card">
+          <canvas id="ecgCanvas"></canvas>
+          <div id="hoverReadout" class="hover-readout" hidden></div>
+        </div>
+
+        <aside class="vitals-panel">
+          <div class="vitals-head">Vital signs · Lead II</div>
+          <div class="hr-block">
+            <div class="hr-units">
+              <span class="hr-tag">HR</span>
+              <span>bpm</span>
+            </div>
+            <div id="hrValue" class="hr-value">--</div>
+            <div id="heartIcon" class="heart-icon" aria-hidden="true">
+              <svg viewBox="0 0 32 30" width="30" height="28">
+                <path d="M16 28 C16 28 2 18.5 2 9.5 C2 4.8 5.8 1.5 10.2 1.5 C12.9 1.5 15.1 2.9 16 4.9 C16.9 2.9 19.1 1.5 21.8 1.5 C26.2 1.5 30 4.8 30 9.5 C30 18.5 16 28 16 28 Z"
+                      fill="currentColor" />
+              </svg>
+            </div>
+          </div>
+          <div id="rhythmLabel" class="rhythm-label">Loading…</div>
+
+          <div class="vitals-table">
+            <div class="vital-row"><span>RR interval</span><strong id="vRr">--</strong></div>
+            <div class="vital-row"><span>HR min / max</span><strong id="vHrRange">--</strong></div>
+            <div class="vital-row"><span>HRV (SDNN)</span><strong id="vHrv">--</strong></div>
+            <div class="vital-row"><span>ST deviation</span><strong id="vSt">--</strong></div>
+            <div class="vital-row"><span>Q / R ratio</span><strong id="vQr">--</strong></div>
+            <div class="vital-row"><span>R amplitude</span><strong id="vRAmp">--</strong></div>
+            <div class="vital-row"><span>Beats analysed</span><strong id="vBeats">--</strong></div>
+          </div>
+        </aside>
+      </div>
+
+      <div id="findingsGrid" class="findings-grid"></div>
+
+      <footer class="disclaimer">
+        Automated rule-based interpretation — must be confirmed by a qualified physician.
+        For educational and research use only; not a certified medical device.
+      </footer>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
